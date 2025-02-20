@@ -21,7 +21,7 @@ using namespace glm;
 vec3 p(0, 0.f ,0);
 
 
-vec3 n(0, -1,0);
+vec3 n(0, 1,0);
  //vec3 n(sin(ry)* cos(rx), sin(rx), cos(ry)* cos(rx));
  
 // reflection matrix
@@ -36,7 +36,7 @@ mat4 matrixReflection = mat4(1 - 2 * a * a, -2 * a * b, -2 * a * c, 0,
 	-2 * a * d, -2 * b * d, -2 * c * d, 1);
 
 
-
+int changeReflectionOption = 0;
 
 // 3D models
 C3dglModel table;
@@ -44,7 +44,7 @@ C3dglModel vase;
 C3dglModel chicken;
 C3dglModel lamp;
 C3dglModel room;
-C3dglModel mirror;
+C3dglModel reflectionFloor;
 unsigned nPyramidBuf = 0;
 
 // texture ids
@@ -134,7 +134,7 @@ bool init()
 	if (!lamp.load("models\\lamp.obj")) return false;
 	if (!room.load("models\\LivingRoomObj\\room2.obj")) return false;
 	room.loadMaterials("models\\LivingRoomObj\\");
-	if (!mirror.load("models\\ad.fbx")) return false;
+	if (!reflectionFloor.load("models\\ad.fbx")) return false;
  
 
 	// create pyramid
@@ -213,14 +213,14 @@ bool init()
 void renderScene(mat4& matrixView, float time, float deltaTime)
 {
 	mat4 m;
-
+	program.sendUniform("matrixView", matrixView);
 	// setup lights
-	program.sendUniform("lightAmbient.color", fAmbient * vec3(22.05, 22.05, 22.05));
-	program.sendUniform("lightDir.diffuse", fDir * vec3(0.3, 0.3, 0.3));	  // dimmed white light
-	program.sendUniform("lightPoint1.diffuse", fPoint1 * vec3(0.5, 0.5, 0.5));
-	program.sendUniform("lightPoint1.specular", fPoint1 * vec3(1.0, 1.0, 1.0));
-	program.sendUniform("lightPoint2.diffuse", fPoint2 * vec3(0.5, 0.5, 0.5));
-	program.sendUniform("lightPoint2.specular", fPoint2 * vec3(1.0, 1.0, 1.0));
+	program.sendUniform("lightAmbient.color", fAmbient * vec3(3.05, 3.05, 3.05));
+	program.sendUniform("lightDir.diffuse", fDir * vec3(0.9, 0.9, 0.9));	  // dimmed white light
+	program.sendUniform("lightPoint1.diffuse", fPoint1 * vec3(1.5, 1.5, 1.5));
+	program.sendUniform("lightPoint1.specular", fPoint1 * vec3(2.0, 2.0, 2.0));
+	program.sendUniform("lightPoint2.diffuse", fPoint2 * vec3(1.5, 1.5, 1.5));
+	program.sendUniform("lightPoint2.specular", fPoint2 * vec3(2.0, 2.0, 2.0));
 
 	// setup materials
 	program.sendUniform("materialSpecular", vec3(0.0, 0.0, 0.0));
@@ -337,16 +337,13 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	program.sendUniform("lightEmissive.color", vec3(0));
 }
 
- 
-void planarReflection2(mat4& matrixView, float time, float deltaTime)
+
+
+
+//OPTION 1 -> PLANAR REFLECTION
+
+void planarReflectionOrigin(mat4& matrixView, float time, float deltaTime)
 {
-	glBindFramebuffer(GL_FRAMEBUFFER, reflectionFBO);
-	GLint viewport[4];
-	glGetIntegerv(GL_VIEWPORT, viewport); // Save original viewport
-
-	glViewport(0, 0, 1280, 720);
-	glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // Clear buffers
-
 	// Enable stencil test for reflection
 	glEnable(GL_STENCIL_TEST);
 	glStencilFunc(GL_ALWAYS, 1, 1);
@@ -358,8 +355,7 @@ void planarReflection2(mat4& matrixView, float time, float deltaTime)
 	mat4 m = matrixView;
 	m = translate(m, vec3(0, 0.1f, 0));
 	m = scale(m, vec3(0.5, 1, 0.5));
-
-	mirror.render(m);
+	reflectionFloor.render(m);
 
 	glStencilFunc(GL_EQUAL, 1, 1);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
@@ -368,52 +364,106 @@ void planarReflection2(mat4& matrixView, float time, float deltaTime)
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
 	glEnable(GL_CLIP_PLANE0);
-	vec4 planeClip = vec4(0.0f, 1.0f, 0.0f, 0.0f);
+	vec4 planeClip = vec4(a,b,c,d);
 	program.sendUniform("planeClip", planeClip);
 
-	matrixView *= matrixReflection;
-	program.sendUniform("matrixView", matrixView);
+	mat4 testmatrixView = matrixView * matrixReflection;
 
-	renderScene(matrixView, time, deltaTime);
+	program.sendUniform("matrixView", testmatrixView);
+
+	renderScene(testmatrixView, time, deltaTime);
 
 	glDisable(GL_CLIP_PLANE0);
 	glDisable(GL_STENCIL_TEST);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-
-
-	matrixView *= matrixReflection;
 }
 
-
-
+void PlanareReflectioOringBaseRender()
+{
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	mat4 m = matrixView;
+	m = translate(m, vec3(0, 0.1f, 0));
+	m = scale(m, vec3(0.5, 1, 0.5));  
+	reflectionFloor.render(m); 
+	glDisable(GL_BLEND);
+}
 	
 
  
- 
+//OPTION2 -> PLANAR REFLECTION + BUFFER AND TEXTRURE
+void planarReflectionAndBufferOption(mat4& matrixView, float time, float deltaTime)
+{
+	glBindFramebuffer(GL_FRAMEBUFFER, reflectionFBO);
+	GLint viewport[4];
+	glGetIntegerv(GL_VIEWPORT, viewport); // Save original viewport
 
+	glViewport(0, 0, 1280, 720);
+	glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // Clear buffers
 
-void renderMirrorSurface() {
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
- 
+	mat4 testmatrixView = matrixView * matrixReflection;
+	program.sendUniform("matrixView", testmatrixView);
+	renderScene(testmatrixView, time, deltaTime);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+}
+
+void PlanareReflectioBufferBaseRender()
+{
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, reflectionTexture);
 
 	mat4 m = matrixView;
-	m = translate(m, vec3(0, 0.f, 0));
+	m = translate(m, vec3(0, 0.1f, 0));
 	m = scale(m, vec3(0.5, 1, 0.5));
-
-	mirror.render(m);
-
-	glDisable(GL_BLEND);
+	reflectionFloor.render(m);
 }
+
+
+
+
+// OPTION3 -> CAMERA UNDER OBJECT + CLIP + BUFFER + RENDER ON TEXTURE
+void staticCameraUnderScene(mat4& matrixView, float time, float deltaTime) {
+
+	glBindFramebuffer(GL_FRAMEBUFFER, reflectionFBO);
+	GLint viewport[4];
+	glGetIntegerv(GL_VIEWPORT, viewport); // Save original viewport
+
+	glViewport(0, 0, 1280, 720);
+	glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // Clear buffers
+
+	// Set up the camera looking up from below
+	mat4 bottomUpView = lookAt(
+		vec3(4.0, -5.0, 0.0),
+		vec3(0.0, 0.0, 0.0),
+		vec3(0.0, -1.0, 0.0)
+	);
+
+	// Orthographic projection setup
+	mat4 orthoProjection = ortho(
+		-21.0f, 21.0f,
+		-21.0f, 21.0f,
+		0.1f,
+		22.0f
+	);
+
+	// Combine projection and view matrices
+	mat4 reflectionMatrix = orthoProjection * bottomUpView;
+
+	// Pass the full projection-view matrix to the render function
+	renderScene(bottomUpView, time, deltaTime);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+}
+
+
 
 
 void onRender()
 {
-	// these variables control time & animation
+	// BASE SETUP
 	static float prev = 0;
 	float time = glutGet(GLUT_ELAPSED_TIME) * 0.001f;	// time since start in seconds
 	float deltaTime = time - prev;						// time since last frame
@@ -432,33 +482,67 @@ void onRender()
 		* matrixView;
 
 
-	planarReflection2(matrixView, time, deltaTime);
-	program.sendUniform("matrixView", matrixView);
-	// Render the normal scene
-	renderScene(matrixView, time, deltaTime);
+	if (changeReflectionOption == 0)
+	{
+		//ORIGINAL PLANAR REFLECTION
+		planarReflectionOrigin(matrixView, time, deltaTime);
+		renderScene(matrixView, time, deltaTime);
+		PlanareReflectioOringBaseRender();
+	}
+	else if (changeReflectionOption == 1)
+	{
+		// PLANAR REFLECTION SAVE INTO BAFFER
+		planarReflectionAndBufferOption(matrixView, time, deltaTime);
+		renderScene(matrixView, time, deltaTime);
+		PlanareReflectioBufferBaseRender();
+	}
+	else if (changeReflectionOption == 2)
+	{
+		staticCameraUnderScene(matrixView, time, deltaTime);
+		renderScene(matrixView, time, deltaTime);
+		PlanareReflectioBufferBaseRender();
+	}
+ 
 
-	// Enable blending to render reflection on the mirror
-	//glEnable(GL_BLEND);
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+ 
 
-	// Bind the reflection texture and render the mirror surface with reflection
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, reflectionTexture);
-
-	mat4 m = matrixView;
-	m = translate(m, vec3(0, 0.1f, 0)); // Small offset
-	m = scale(m, vec3(0.5, 1, 0.5)); // Mirror surface scaling
-	mirror.render(m); // Render the mirror with reflection texture
-
-	// Disable blending after rendering the mirror
-	//glDisable(GL_BLEND);
-	 
-	// essential for double-buffering technique
-	glutSwapBuffers();
-
-	// proceed the animation
-	glutPostRedisplay();
+	glutSwapBuffers(); // double buffer
+	glutPostRedisplay(); // animation
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // called before window opened or resized - to setup the Projection Matrix
 void onReshape(int w, int h)
@@ -481,6 +565,7 @@ void onKeyDown(unsigned char key, int x, int y)
 	case 'q': _acc.y = -accel; break;
 	case '1': fPoint1 = 1 - fPoint1; break;
 	case '2': fPoint2 = 1 - fPoint2; break;
+	case '3':changeReflectionOption < 2 ? changeReflectionOption++ : changeReflectionOption = 0;  break;
 	case '9': fDir = 1 - fDir; break;
 	case '0': fAmbient = 1 - fAmbient; break;
 	}
@@ -618,40 +703,4 @@ int main(int argc, char **argv)
 	glutMainLoop();
 
 	return 1;
-}
-
-
-
-
-void planarReflection(mat4& matrixView, float time, float deltaTime) {
-
-	//program.sendUniform("planeClip", vec4(a, b, c, d));
-	//program.sendUniform("matrixView", matrixView);
-
-
-
-	//SAVE TO BUFFFER
-		// Bind framebuffer for rendering reflection
-	glBindFramebuffer(GL_FRAMEBUFFER, reflectionFBO);
-	glViewport(0, 0, 1280, 720); // Use framebuffer size
-
-	// Bind framebuffer for rendering reflection
-	glBindFramebuffer(GL_FRAMEBUFFER, reflectionFBO);
-	glViewport(0, 0, 1280, 720); // Use framebuffer size
-
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear the reflection texture
-
-	mat4 reflectedView = matrixView * matrixReflection;
-
-	// Enable clipping plane (to avoid rendering objects below the mirror plane)
-	glEnable(GL_CLIP_PLANE0);
-
-	renderScene(reflectedView, time, deltaTime); // render the scene objects
-
-
-	glDisable(GL_CLIP_PLANE0);
-	// Unbind framebuffer (switch back to default screen rendering)
-	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
-//	glViewport(0, 0, 1280, 720);
-
 }
