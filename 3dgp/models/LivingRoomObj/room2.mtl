@@ -1,0 +1,76 @@
+newmtl LivingRoom:Cabinet1
+illum 4
+Kd 0.89 0.89 0.89
+Ka 0.89 0.89 0.89
+Tf 1.00 1.00 1.00
+Ni 1.50
+Ks 0.00 0.00 0.00
+Ns 10.00
+newmtl LivingRoom:CupPlate
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd CupPlateDiffuceMap.jpg
+map_Ka CupPlateDiffuceMap.jpg
+bump  -bm 0 CupPlateNormalsMap.jpg
+Ni 1.50
+Ks 0.00 0.00 0.00
+Ns 10.00
+newmtl LivingRoom:Foor
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd FloorDiffuce.jpg
+map_Ka FloorDiffuce.jpg
+Ni 1.50
+Ks 0.00 0.00 0.00
+Ns 10.00
+newmtl LivingRoom:Light
+illum 4
+Kd 1.00 1.00 1.00
+Ka 1.00 1.00 1.00
+Tf 1.00 1.00 1.00
+Ni 1.50
+Ks 0.00 0.00 0.00
+Ns 10.00
+newmtl LivingRoom:WallColor
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd WallColorDiffuce.jpg
+map_Ka WallColorDiffuce.jpg
+Ni 1.50
+Ks 0.00 0.00 0.00
+Ns 10.00
+newmtl LivingRoom:WhiteWall
+illum 4
+Kd 0.91 0.91 0.91
+Ka 0.91 0.91 0.91
+Tf 1.00 1.00 1.00
+Ni 1.50
+Ks 0.00 0.00 0.00
+Ns 10.00
+newmtl LivingRoom:Wood
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd WoodDiffuce.jpg
+map_Ka WoodDiffuce.jpg
+Ni 1.50
+Ks 0.00 0.00 0.00
+Ns 10.00
+newmtl LivingRoom:WoodWall
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd WoodWallDiffuce.jpg
+map_Ka WoodWallDiffuce.jpg
+bump  -bm 0 WoodWallNormal.jpg
+Ni 1.50
+Ks 0.00 0.00 0.00
+Ns 10.00
